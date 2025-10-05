@@ -1,7 +1,9 @@
 package com.dromaniak.ingephoto
 
+import android.content.ContentUris
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -64,7 +66,7 @@ class MainActivity : ComponentActivity(), ServiceReadyListener {
                     printer?.addImage(AlignType.CENTER, bmpMono)
 //                    val file = File(this.filesDir, "mono_image.bmp")
 //                    file.writeBytes(bmpMono)
-                    printer?.feedLine(2)
+                    printer?.feedLine(4)
 
                     printer?.startPrint(object : OnPrintListener.Stub() {
                         override fun onFinish() {
@@ -290,7 +292,7 @@ fun CameraCaptureScreen(
                     ) {
                         Text(
                             text = "Click to print photo",
-                            color = Color.White.copy(alpha = 0.3f),
+                            color = Color.White.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
@@ -341,24 +343,63 @@ fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
 }
 
 fun getLatestBitmaps(context: Context, limit: Int = 10): List<Bitmap> {
-    val uris = mutableListOf<Uri>()
-    val projection = arrayOf(MediaStore.Images.Media._ID)
-    val sortOrder = "${MediaStore.Images.Media.DATE_TAKEN} DESC LIMIT $limit"
+    val bitmaps = mutableListOf<Bitmap>()
+
+    val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+    } else {
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    }
+
+    val projection = arrayOf(
+        MediaStore.Images.Media._ID,
+        MediaStore.Images.Media.DATE_ADDED
+    )
+
+    val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC LIMIT $limit"
 
     context.contentResolver.query(
-        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+        collection,
         projection,
         null,
         null,
         sortOrder
     )?.use { cursor ->
         val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+
         while (cursor.moveToNext()) {
             val id = cursor.getLong(idColumn)
-            val uri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id.toString())
-            uris.add(uri)
+            val contentUri = ContentUris.withAppendedId(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                id
+            )
+            try {
+                val source = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.createSource(context.contentResolver, contentUri)
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.contentResolver.openInputStream(contentUri)?.use {
+                        BitmapFactory.decodeStream(it)
+                    }
+                    null
+                }
+
+                val bmp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(source!!) { decoder, _, _ ->
+                        decoder.isMutableRequired = false
+                    }
+                } else {
+                    BitmapFactory.decodeStream(
+                        context.contentResolver.openInputStream(contentUri)
+                    )
+                }
+
+                bmp?.let { bitmaps.add(it) }
+
+            } catch (_: Exception) {
+            }
         }
     }
 
-    return uris.mapNotNull { getBitmapFromUri(context, it) }
+    return bitmaps
 }

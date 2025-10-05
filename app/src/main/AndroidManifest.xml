@@ -7,7 +7,9 @@
         android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Для Android 9 и ниже -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- For Android 9 and lower -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
