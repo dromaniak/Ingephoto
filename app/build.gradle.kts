@@ -10,10 +10,13 @@ android {
 
     defaultConfig {
         applicationId = "com.dromaniak.ingephoto"
+        applicationId = ProjectInfo.applicationId
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        group = ProjectInfo.group
+        version = ProjectInfo.versionName
+        versionCode = ProjectInfo.versionCode
+        versionName = ProjectInfo.versionName + "-${ProjectInfo.buildNumber}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -36,6 +39,14 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+
+    applicationVariants.all {
+        outputs
+            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+            .forEach { output ->
+                output.outputFileName = "${ProjectInfo.name}-${versionName}-${this.name}.apk"
+            }
     }
 }
 
@@ -61,4 +72,16 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+object ProjectInfo {
+    const val group = "com.dromaniak"
+    const val name = "ingephoto"
+    const val applicationId = "$group.$name"
+    const val majorVersion = 1
+    const val minorVersion = 0
+    const val patchVersion = 0
+    const val buildNumber = 0
+    const val versionName = "$majorVersion.$minorVersion.$patchVersion"
+    const val versionCode = 1_000_00_00 * majorVersion + 1_00_00 * minorVersion + 1_00 * patchVersion + buildNumber
 }
