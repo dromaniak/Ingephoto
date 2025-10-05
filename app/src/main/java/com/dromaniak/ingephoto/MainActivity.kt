@@ -254,7 +254,7 @@ fun CameraCaptureScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .clickable(enabled = !isAnimating) {
-                            // Call print function
+                            // Call print
                             onPrint(bmp)
 
                             // Animate photo upwards
@@ -262,6 +262,7 @@ fun CameraCaptureScreen(
                                 isAnimating = true
                                 val screenHeight =
                                     context.resources.displayMetrics.heightPixels.toFloat()
+
                                 offsetY.snapTo(0f)
                                 offsetY.animateTo(
                                     targetValue = -screenHeight,
@@ -269,10 +270,19 @@ fun CameraCaptureScreen(
                                         durationMillis = 700
                                     )
                                 )
-                                // Remove photo after animation
-                                bitmapList = bitmapList.toMutableList().apply { removeAt(page) }
+
+                                // Brief delay to simulate “print”
+                                kotlinx.coroutines.delay(400)
+
+                                // Return photo back to original position
+                                offsetY.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = androidx.compose.animation.core.tween(
+                                        durationMillis = 500
+                                    )
+                                )
+
                                 isAnimating = false
-                                offsetY.snapTo(0f)
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -305,7 +315,6 @@ fun CameraCaptureScreen(
             onClick = {
                 photoUri = createImageUri(context)
                 takePictureLauncher.launch(photoUri)
-
                 scope.launch { pagerState.scrollToPage(0) }
             },
             modifier = Modifier
